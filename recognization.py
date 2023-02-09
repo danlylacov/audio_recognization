@@ -1,7 +1,9 @@
+import cmath
 import wave
 import struct
 import matplotlib.pyplot as plt
-from math import cos, pi
+from math import cos, pi, e
+from cmath import exp, pi, sqrt
 
 
 def pcm_channels(wave_file):  # wav to PCM
@@ -54,6 +56,17 @@ def window_of_hemming(data, N):# использование окна Хемми�
     return data
 
 
+def furie(data, k):# дискретное преобразование фурье и возведение значения в квадрат
+    res = 0
+    N = len(data)
+    for i in range(N):
+        res += data[i]*exp(((-2*pi*sqrt(-1))/N)*k*i)
+    return res**2
+
+def gz_to_mel(f):# перевод из гц в мелы
+    return 2595*cmath.log10(1+f/700)
+
+
 
 
 
@@ -65,12 +78,12 @@ def draw_grafic(data):  # отрисовка графика
 data = pcm_channels('sample-3s.wav')[0]
 data = normolize(data)
 data = list(partition(data, 6000))# разделение задачи на подзадачи
-draw_grafic(data[0])
-data1 = window_of_hemming(data[10], 6000)
-data2 = window_of_hemming(data[3], 6000)
+for i in range(len(data)):
+    data[i] = window_of_hemming(data[i], 6000)
+for i in range(1, len(data)):
+    print(gz_to_mel(furie(data[i], i)))
 
-draw_grafic(data1)
-draw_grafic(data2)
+
 
 
 
