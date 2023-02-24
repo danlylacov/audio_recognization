@@ -2,7 +2,7 @@ import cmath
 import wave
 import struct
 import matplotlib.pyplot as plt
-from math import cos, pi, e
+from math import cos, pi
 from cmath import exp, pi, sqrt
 
 
@@ -50,24 +50,32 @@ def partition(data, n):  # разделение задачи на подзада
         yield data[i:i + n // 2 + n // 2]
 
 
-def window_of_hemming(data, N):# использование окна Хемминга к каждому значению списка
+def window_of_hemming(data, N):  # использование окна Хемминга к каждому значению списка
     for i in range(len(data)):
-        data[i] = 0.53836 - 0.46164*cos((2*pi*(i+1))/(N-1))
+        data[i] = 0.53836 - 0.46164 * cos((2 * pi * (i + 1)) / (N - 1))
     return data
 
 
-def furie(data, k):# дискретное преобразование фурье и возведение значения в квадрат
+def furie(data, k):  # дискретное преобразование фурье и возведение значения в квадрат
     res = 0
     N = len(data)
     for i in range(N):
-        res += data[i]*exp(((-2*pi*sqrt(-1))/N)*k*i)
-    return res**2
-
-def gz_to_mel(f):# перевод из гц в мелы
-    return 2595*cmath.log10(1+f/700)
+        res += data[i] * exp(((-2 * pi * sqrt(-1)) / N) * k * i)
+    return res ** 2
 
 
+def gz_to_mel(f):  # перевод из гц в мелы
+    return 2595 * cmath.log10(1 + f / 700)
 
+
+def vector(data, K):
+    vector_data = []
+    c = 0
+    for n in range(1, len(data)):
+        a = cmath.log10(data[i]) * (n * (n - 0.5) * (pi / K))
+        c += a
+        vector_data.append(c)
+    return vector_data
 
 
 def draw_grafic(data):  # отрисовка графика
@@ -76,12 +84,18 @@ def draw_grafic(data):  # отрисовка графика
 
 
 data = pcm_channels('sample-3s.wav')[0]
+# draw_grafic(data)
 data = normolize(data)
-data = list(partition(data, 6000))# разделение задачи на подзадачи
+# draw_grafic(data)
+data = list(partition(data, 6000))  # разделение задачи на подзадачи
+# draw_grafic(data[0])
 for i in range(len(data)):
     data[i] = window_of_hemming(data[i], 6000)
-for i in range(1, len(data)):
-    print(gz_to_mel(furie(data[i], i)))
+for i in range(len(data)):
+    data[i] = furie(data[i], i)
+draw_grafic(data[0])
+#a = vector(data, 20)
+print(vector(data, 20))
 
 
 
