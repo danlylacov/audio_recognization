@@ -1,10 +1,7 @@
-import cmath
 import wave
 import struct
 import matplotlib.pyplot as plt
-from math import cos, pi
-from cmath import exp, pi, sqrt
-
+from cmath import cos,  pi, log10
 import scipy.fft
 
 
@@ -58,23 +55,17 @@ def hamming(data): # ф-я умноженя каждого элемента ма
     return data
 
 
-#def furie(data, k):  # дискретное преобразование фурье и возведение значения в квадрат
-#    res = 0
-#    N = len(data)
-#    for i in range(N):
-#        res += data[i] * exp(((-2 * pi * sqrt(-1)) / N) * k * i)
-#    return res ** 2
-
-
-def gz_to_mel(f):  # перевод из гц в мелы
-    return 2595 * cmath.log10(1 + f / 700)
+def gz_to_mel(data):  # перевод из гц в мелы
+    for i in range(len(data)):
+        data[i] = 2595 * log10(1 + data[i] / 700)
+    return data
 
 
 def vector(data, K):
     vector_data = []
     c = 0
     for n in range(1, len(data)):
-        a = cmath.log10(data[i]) * (n * (n - 0.5) * (pi / K))
+        a = log10(data[i]) * (n * (n - 0.5) * (pi / K))
         c += a
         vector_data.append(c)
     return vector_data
@@ -85,23 +76,35 @@ def draw_grafic(data):  # отрисовка графика
     plt.show()
 
 
-data = pcm_channels('sample-3s.wav')[0]
+data = pcm_channels('sample-3s.wav')[0]# запись PCM данных в массив
+#draw_grafic(data)
 
-
-data = normolize(data)
-
+data = normolize(data)# нормализация сигнала
+#draw_grafic(data)
 
 data = list(partition(data, 6000))  # разделение задачи на подзадачи (data[n] - отдельно взятый отрезок)
-
+#draw_grafic(data[1])
 
 for i in range(len(data)):# умножение каждого значения кадра на окно Хемминга
     data[i] = hamming(data[i])
 
-
+#draw_grafic(data[1])
 
 
 for i in range(len(data)): # прогонка значений через дискретное преобразование Фурье
     data[i] = scipy.fft.fft(data[i], len(data[i]))
+
+
+
+for i in range(len(data)): # преобразование данных из Гц в Мел
+    data[i] = gz_to_mel(data[i])
+
+for i in range(len(data)):
+    draw_grafic(vector(data[i], 20))
+
+
+
+
 
 
 
