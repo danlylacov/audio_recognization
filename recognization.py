@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 from math import cos, pi
 from cmath import exp, pi, sqrt
 
+import scipy.fft
+
 
 def pcm_channels(wave_file):  # wav to PCM
     stream = wave.open(wave_file, "rb")
@@ -50,18 +52,18 @@ def partition(data, n):  # разделение задачи на подзада
         yield data[i:i + n // 2 + n // 2]
 
 
-def window_of_hemming(data, N):  # использование окна Хемминга к каждому значению списка
-    for i in range(len(data)):
-        data[i] = 0.53836 - 0.46164 * cos((2 * pi * (i + 1)) / (N - 1))
+def hamming(data): # ф-я умноженя каждого элемента массива на окно Хемминга
+    for n in range(len(data)):
+        data[n] = data[n] * (0.54 + 0.46 * cos(pi * n / (len(data) - 1)))
     return data
 
 
-def furie(data, k):  # дискретное преобразование фурье и возведение значения в квадрат
-    res = 0
-    N = len(data)
-    for i in range(N):
-        res += data[i] * exp(((-2 * pi * sqrt(-1)) / N) * k * i)
-    return res ** 2
+#def furie(data, k):  # дискретное преобразование фурье и возведение значения в квадрат
+#    res = 0
+#    N = len(data)
+#    for i in range(N):
+#        res += data[i] * exp(((-2 * pi * sqrt(-1)) / N) * k * i)
+#    return res ** 2
 
 
 def gz_to_mel(f):  # перевод из гц в мелы
@@ -84,19 +86,22 @@ def draw_grafic(data):  # отрисовка графика
 
 
 data = pcm_channels('sample-3s.wav')[0]
-# draw_grafic(data)
-data = normolize(data)
-# draw_grafic(data)
-data = list(partition(data, 6000))  # разделение задачи на подзадачи
-# draw_grafic(data[0])
-for i in range(len(data)):
-    data[i] = window_of_hemming(data[i], 6000)
-for i in range(len(data)):
-    data[i] = furie(data[i], i)
-draw_grafic(data[0])
-#a = vector(data, 20)
-print(vector(data, 20))
 
+
+data = normolize(data)
+
+
+data = list(partition(data, 6000))  # разделение задачи на подзадачи (data[n] - отдельно взятый отрезок)
+
+
+for i in range(len(data)):# умножение каждого значения кадра на окно Хемминга
+    data[i] = hamming(data[i])
+
+
+
+
+for i in range(len(data)): # прогонка значений через дискретное преобразование Фурье
+    data[i] = scipy.fft.fft(data[i], len(data[i]))
 
 
 
