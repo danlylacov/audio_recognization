@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from cmath import cos, pi, log10
 import scipy.fft
 import numpy as np
+from python_speech_features import mfcc
 
 
 def pcm_channels(wave_file):  # wav to PCM
@@ -69,14 +70,8 @@ def gz_to_mel(data):  # перевод из гц в мелы
     return data
 
 
-def vector(data, K):
-    vector_data = []
-    c = 0
-    for n in range(1, K):
-        a = log10(data[n]) * (n * (n - 0.5) * (pi / K))
-        c += a
-        vector_data.append(c)
-    return vector_data
+def vector(data):
+    return mfcc(data, 48000)
 
 
 def draw_grafic(data):  # отрисовка графика
@@ -91,7 +86,7 @@ def audio_main(file_name):
     data = normolize(data)  # нормализация сигнала
     #draw_grafic(data)
 
-    data = list(partition(data, 6000))  # разделение задачи на подзадачи (data[n] - отдельно взятый отрезок)
+    data = list(partition(data, 3000))  # разделение задачи на подзадачи (data[n] - отдельно взятый отрезок)
 
 
     for i in range(len(data)):  # действия над каждой подзадачей
@@ -104,9 +99,11 @@ def audio_main(file_name):
             data[i] = hamming(data[i])# умножение на окно Хемминга
             data[i] = scipy.fft.fft(data[i], len(data[i]))# прогонка через дискретное преобразование фурье
             data[i] = gz_to_mel(data[i]) # перевод из Гц в мел
-            data[i] = vector(data[i], 20) # вычленение вектора признаков
+            data[i] = vector(data[i]) # вычленение вектора признаков
+            #print('dcsdc')
         except:
             break
+
 
     vector_mel = []
     for i in range(len(data[0])):  # выделение среднего вектора признаков для всех участков
@@ -117,10 +114,11 @@ def audio_main(file_name):
             vector_mel.append(s / len(data[0]))
         except:
             pass
-
+    print(data[1])
+    print(data[2])
     #draw_grafic(vector_mel)
+    print(vector_mel[0])
 
     return vector_mel
 
 
-#print(audio_main('audio(waw)/OSR_uk_000_0020_8k (mp3cut.net) (3).wav'))
