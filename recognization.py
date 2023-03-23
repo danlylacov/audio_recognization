@@ -49,23 +49,30 @@ def partition(data, n):  # разделение задачи на подзада
     for i in range(0, len(data), n // 2):
         yield data[i:i + n // 2 + n // 2]
 
+def is_clean(data):
+    count = 0
+    for i in range(len(data)):
+        if data[i] < 0.12:
+            count += 1
+    return count
+
 
 def hamming(data):  # ф-я умноженя каждого элемента массива на окно Хемминга
     for n in range(len(data)):
-        data[n] = data[n] * (0.54 + 0.46 * cos(pi * n / (len(data) - 1)))
+        data[n] = data[n] * (0.53836 + 0.46164 * cos(2 * pi * n / (len(data) - 1)))
     return data
 
 
 def gz_to_mel(data):  # перевод из гц в мелы
     for i in range(len(data)):
-        data[i] = 1125 * np.log(1 + data[i]/700)
+        data[i] = 1125 * np.log(1 + data[i] / 700)
     return data
 
 
 def vector(data, K):
     vector_data = []
     c = 0
-    for n in range(1, 20):
+    for n in range(1, K):
         a = log10(data[n]) * (n * (n - 0.5) * (pi / K))
         c += a
         vector_data.append(c)
@@ -77,45 +84,43 @@ def draw_grafic(data):  # отрисовка графика
     plt.show()
 
 
-data = pcm_channels('Sound_22123 (mp3cut.net.wav')[0]  # запись PCM данных в массив
-#draw_grafic(data)
+def audio_main(file_name):
+    data = pcm_channels(file_name)[0]  # запись PCM данных в массив
+    #draw_grafic(data)
+
+    data = normolize(data)  # нормализация сигнала
+    #draw_grafic(data)
+
+    data = list(partition(data, 6000))  # разделение задачи на подзадачи (data[n] - отдельно взятый отрезок)
 
 
-data = normolize(data)  # нормализация сигнала
-#draw_grafic(data)
-
-data = list(partition(data, 6000))  # разделение задачи на подзадачи (data[n] - отдельно взятый отрезок)
-#draw_grafic(data[1])
-
-for i in range(len(data)):  # умножение каждого значения кадра на окно Хемминга
-    data[i] = hamming(data[i])
-
-#draw_grafic(data[1])
+    for i in range(len(data)):  # действия над каждой подзадачей
+        try:
+            if is_clean(data[i]) > 5800:# удаление пустых участков записи
+                del data[i]
+                continue
 
 
-for i in range(len(data)):  # прогонка значений через дискретное преобразование Фурье
-    data[i] = scipy.fft.fft(data[i], len(data[i]))
-#draw_grafic(data[1])
+            data[i] = hamming(data[i])# умножение на окно Хемминга
+            data[i] = scipy.fft.fft(data[i], len(data[i]))# прогонка через дискретное преобразование фурье
+            data[i] = gz_to_mel(data[i]) # перевод из Гц в мел
+            data[i] = vector(data[i], 20) # вычленение вектора признаков
+        except:
+            break
 
-for i in range(len(data)):  # преобразование данных из Гц в Мел
-    data[i] = gz_to_mel(data[i])
-#draw_grafic(data[1])
+    vector_mel = []
+    for i in range(len(data[0])):  # выделение среднего вектора признаков для всех участков
+        s = 0
+        try:
+            for j in range(len(data)):
+                s += data[j][i]
+            vector_mel.append(s / len(data[0]))
+        except:
+            pass
 
-#print(vector(data[2], 20))
-for i in range(len(data)):# выделение вектора признаков для каждого участка
-    data[i] = vector(data[i], 20)
+    #draw_grafic(vector_mel)
+
+    return vector_mel
 
 
-vector_mel = []
-for i in range(len(data[0])):# выделение среднего вектора признаков для всех участков
-    s = 0
-    try:
-        for j in range(len(data)):
-            s += data[j][i]
-        vector_mel.append(s/len(data[0]))
-    except:
-        pass
-    
-    
-print(vector_mel)
-draw_grafic(vector_mel)
+#print(audio_main('audio(waw)/OSR_uk_000_0020_8k (mp3cut.net) (3).wav'))
