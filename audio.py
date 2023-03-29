@@ -1,42 +1,9 @@
-import wave
-import struct
 import matplotlib.pyplot as plt
-from cmath import cos, pi, log10
+from cmath import cos, pi
 import scipy.fft
 import numpy as np
 from python_speech_features import mfcc
-
-
-def pcm_channels(wave_file):  # wav to PCM
-    stream = wave.open(wave_file, "rb")
-
-    num_channels = stream.getnchannels()
-    sample_rate = stream.getframerate()
-    sample_width = stream.getsampwidth()
-    num_frames = stream.getnframes()
-
-    raw_data = stream.readframes(num_frames)
-    stream.close()
-
-    total_samples = num_frames * num_channels
-
-    if sample_width == 1:
-        fmt = "%iB" % total_samples
-    elif sample_width == 2:
-        fmt = "%ih" % total_samples
-    else:
-        raise ValueError("Only supports 8 and 16 bit audio formats.")
-
-    integer_data = struct.unpack(fmt, raw_data)
-    del raw_data
-
-    channels = [[] for time in range(num_channels)]
-
-    for index, value in enumerate(integer_data):
-        bucket = index % num_channels
-        channels[bucket].append(value)
-
-    return channels
+from settings import SEMPLATE_OF_SIGNAL,  DELETE_FRAME_LIMIT, FRAME_LIMIT, SUBTASK_LENGTH
 
 
 def normolize(data):  # нормализация PCM данных
@@ -53,7 +20,7 @@ def partition(data, n):  # разделение задачи на подзада
 def is_clean(data):
     count = 0
     for i in range(len(data)):
-        if data[i] < 0.12:
+        if data[i] < FRAME_LIMIT:
             count += 1
     return count
 
@@ -71,7 +38,25 @@ def gz_to_mel(data):  # перевод из гц в мелы
 
 
 def vector(data):
-    return mfcc(data, 48000)
+    return mfcc(data, SEMPLATE_OF_SIGNAL)
+
+
+def get_average_vector(data):  # усреднение вектора признаков для каждого участка записи
+    average_vector = [list(0 for i in range(len(data[0][0]))) for i in range(len(data[0]))]
+    len_data = len(data)
+    for n in range(len(data)):
+
+        vector = data[n]
+        for i in range(len(vector)):
+            for j in range(len(vector[i])):
+                average_vector[i][j] = average_vector[i][j] + vector[i][j]
+
+    for i in range(len(average_vector)):
+        for j in range(len(average_vector[i])):
+            average_vector[i][j] = average_vector[i][j] / len_data
+
+    return average_vector
+
 
 
 def draw_grafic(data):  # отрисовка графика
@@ -79,19 +64,20 @@ def draw_grafic(data):  # отрисовка графика
     plt.show()
 
 
-def audio_main(file_name):
-    data = pcm_channels(file_name)[0]  # запись PCM данных в массив
+
+def audio_main(data):
+    #data = pcm_channels(file_name)[0]  # запись PCM данных в массив
     #draw_grafic(data)
 
     data = normolize(data)  # нормализация сигнала
     #draw_grafic(data)
 
-    data = list(partition(data, 3000))  # разделение задачи на подзадачи (data[n] - отдельно взятый отрезок)
+    data = list(partition(data, SUBTASK_LENGTH))  # разделение задачи на подзадачи (data[n] - отдельно взятый отрезок)
 
 
     for i in range(len(data)):  # действия над каждой подзадачей
         try:
-            if is_clean(data[i]) > 5800:# удаление пустых участков записи
+            if is_clean(data[i]) > DELETE_FRAME_LIMIT:# удаление пустых участков записи
                 del data[i]
                 continue
 
@@ -104,21 +90,17 @@ def audio_main(file_name):
         except:
             break
 
+    data = get_average_vector(data)
+    return  data
 
-    vector_mel = []
-    for i in range(len(data[0])):  # выделение среднего вектора признаков для всех участков
-        s = 0
-        try:
-            for j in range(len(data)):
-                s += data[j][i]
-            vector_mel.append(s / len(data[0]))
-        except:
-            pass
-    print(data[1])
-    print(data[2])
-    #draw_grafic(vector_mel)
-    print(vector_mel[0])
 
-    return vector_mel
+
+
+
+
+
+
+
+
 
 
